@@ -405,42 +405,6 @@ class Modulated_1D(nn.Module):
         return x
         
 
-class EqualConv2d_swap(nn.Module):
-    def __init__(
-        self, in_channel, out_channel, kernel_size, stride=1, padding=0, bias=True
-    ):
-        super().__init__()
-
-        self.weight = nn.Parameter(
-            torch.randn(out_channel, in_channel, kernel_size, kernel_size)
-        )
-        self.scale = 1 / math.sqrt(in_channel * kernel_size ** 2)
-
-        self.stride = stride
-        self.padding = padding
-
-        if bias:
-            self.bias = nn.Parameter(torch.zeros(out_channel))
-
-        else:
-            self.bias = None
-
-    def forward(self, input):
-        out = F.conv2d(
-            input,
-            self.weight * self.scale,
-            bias=self.bias,
-            stride=self.stride,
-            padding=self.padding,
-        )
-
-        return out
-
-    def __repr__(self):
-        return (
-            f"{self.__class__.__name__}({self.weight.shape[1]}, {self.weight.shape[0]},"
-            f" {self.weight.shape[2]}, stride={self.stride}, padding={self.padding})"
-        )
 
 class EqualConv2d(nn.Module):
     def __init__(self, *args, **kwargs):
@@ -1020,7 +984,7 @@ class Distan_StyledDecoder(nn.Module):
         #self.s_denorm = nn.Linear(256,2*256)
         self.t_denorm = nn.Linear(256,2)
 
-    def forward(self, struct_feat, text_feat, target_age=None, traverse=False, deploy=False, swap=False, interp_step=0.5):
+    def forward(self, struct_feat, text_feat, target_age=None, traverse=False, deploy=False, interp_step=0.5):
 
         #import ipdb; ipdb.set_trace()
         if target_age is not None:
@@ -1048,19 +1012,11 @@ class Distan_StyledDecoder(nn.Module):
         ##normalizing structure
         if target_age is not None:
             B, C, W, H = struct_feat.size()
-            if not swap:
-
-
-                #B, C, W, H = struct_feat.size()
-                #mean_struct = struct_feat.reshape(B,C,H*W).mean(dim=2).reshape(B,C,1,1).detach()
-                #std_struct = (struct_feat.reshape(B,C,H*W).var(dim=2)+1e-5).sqrt().reshape(B,C,1,1).detach()
-                #norm_struct = (struct_feat-mean_struct)/std_struct
-                #sb_struct = self.s_denorm(latent)
-                #s_struct, b_struct = sb_struct[:,:256].contiguous().reshape(B,C,1,1), sb_struct[:,256:].contiguous().reshape(B,C,1,1)
-                #new_struct = s_struct * norm_struct + b_struct
-                new_struct = self.s_transform(struct_feat,latent)
-            else:
-                new_struct = struct_feat
+            
+        ##normalizing structure
+            
+            new_struct = self.s_transform(struct_feat,latent)
+            
         ###normalizing texture
             text_feat = text_feat.contiguous().reshape(B,C)
             #text_mean = text_feat.mean(dim=1).reshape(B,1).detach()
@@ -1182,9 +1138,9 @@ class Distan_Generator(nn.Module):
         else:
             return None, None
 
-    def decode(self, struct_features, text_features, target_age_features=None, traverse=False, deploy=False, swap=False, interp_step=0.5):
+    def decode(self, struct_features, text_features, target_age_features=None, traverse=False, deploy=False, interp_step=0.5):
         if torch.is_tensor(struct_features):
-            return self.decoder(struct_features, text_features, target_age=target_age_features, traverse=traverse, deploy=deploy, swap=swap, interp_step=interp_step)
+            return self.decoder(struct_features, text_features, target_age=target_age_features, traverse=traverse, deploy=deploy, interp_step=interp_step)
         else:
             return None
 
