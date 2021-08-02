@@ -5,7 +5,7 @@ import scipy # this is to prevent a potential error caused by importing torch be
 from collections import OrderedDict
 from options.train_options import TrainOptions
 from data.data_loader import CreateDataLoader
-from models_mst_distan.models import create_model
+from models_distan.models import create_model
 import util.util as util
 from util.visualizer import Visualizer
 import os

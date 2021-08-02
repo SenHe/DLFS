@@ -11,159 +11,14 @@ import numpy as np
 from math import sqrt
 from pdb import set_trace as st
 import math
-from models.op import FusedLeakyReLU, fused_leaky_relu, upfirdn2d
 
 ###############################################################################
 # Functions
 ###############################################################################
 
-##class end with _swap, copied from swapping auto_encoder paper
 
-class EqualLinear_swap(nn.Module):
-    def __init__(
-        self, in_dim, out_dim, bias=True, bias_init=0, lr_mul=1, activation=None
-    ):
-        super().__init__()
 
-        self.weight = nn.Parameter(torch.randn(out_dim, in_dim).div_(lr_mul))
 
-        if bias:
-            self.bias = nn.Parameter(torch.zeros(out_dim).fill_(bias_init))
-
-        else:
-            self.bias = None
-
-        self.activation = activation
-
-        self.scale = (1 / math.sqrt(in_dim)) * lr_mul
-        self.lr_mul = lr_mul
-
-    def forward(self, input):
-        if self.activation:
-            out = F.linear(input, self.weight * self.scale)
-            out = fused_leaky_relu(out, self.bias * self.lr_mul)
-
-        else:
-            out = F.linear(
-                input, self.weight * self.scale, bias=self.bias * self.lr_mul
-            )
-
-        return out
-
-    def __repr__(self):
-        return (
-            f"{self.__class__.__name__}({self.weight.shape[1]}, {self.weight.shape[0]})"
-        )
-
-class ResBlock_swap(nn.Module):
-    def __init__(
-        self,
-        in_channel,
-        out_channel,
-        downsample,
-        padding="zero",
-        blur_kernel=(1, 3, 3, 1),
-    ):
-        super().__init__()
-
-        self.conv1 = ConvLayer(in_channel, out_channel, 3, padding=padding)
-
-        self.conv2 = ConvLayer(
-            out_channel,
-            out_channel,
-            3,
-            downsample=downsample,
-            padding=padding,
-            blur_kernel=blur_kernel,
-        )
-
-        if downsample or in_channel != out_channel:
-            self.skip = ConvLayer(
-                in_channel,
-                out_channel,
-                1,
-                downsample=downsample,
-                blur_kernel=blur_kernel,
-                bias=False,
-                activate=False,
-            )
-
-        else:
-            self.skip = None
-
-    def forward(self, input):
-        out = self.conv1(input)
-        out = self.conv2(out)
-
-        if self.skip is not None:
-            skip = self.skip(input)
-
-        else:
-            skip = input
-
-        # print(out.shape)
-
-        return (out + skip)
-
-class CooccurDiscriminator(nn.Module):
-    def __init__(self, channel, size=256):
-        super().__init__()
-
-        encoder = [ConvLayer(3, channel, 1)]
-
-        ch_multiplier = (2, 4, 8, 12, 12, 24)
-        downsample = (True, True, True, True, True, False)
-        in_ch = channel
-        for ch_mul, down in zip(ch_multiplier, downsample):
-            encoder.append(ResBlock_swap(in_ch, channel * ch_mul, down))
-            in_ch = channel * ch_mul
-
-        if size > 511:
-            k_size = 3
-            feat_size = 2 * 2
-
-        else:
-            k_size = 2
-            feat_size = 1 * 1
-
-        encoder.append(ConvLayer(in_ch, channel * 12, k_size, padding="valid"))
-
-        self.encoder = nn.Sequential(*encoder)
-
-        self.linear = nn.Sequential(
-            EqualLinear_swap(
-                channel * 12 * 2 * feat_size, channel * 32, activation="fused_lrelu"
-            ),
-            EqualLinear_swap(channel * 32, channel * 32, activation="fused_lrelu"),
-            EqualLinear_swap(channel * 32, channel * 16, activation="fused_lrelu"),
-            EqualLinear_swap(channel * 16, 1),
-        )
-
-    def forward(self, input, reference=None, ref_batch=None, ref_input=None):
-        # print(input.shape)
-        out_input = self.encoder(input)
-
-        if ref_input is None:
-            ref_input = self.encoder(reference)
-            _, channel, height, width = ref_input.shape
-            ref_input = ref_input.view(-1, ref_batch, channel, height, width)
-            ref_input = ref_input.mean(1)
-
-        out = torch.cat((out_input, ref_input), 1)
-        out = torch.flatten(out, 1)
-        out = self.linear(out)
-
-        return out, ref_input
-
-def make_kernel_swap(k):
-    k = torch.tensor(k, dtype=torch.float32)
-
-    if k.ndim == 1:
-        k = k[None, :] * k[:, None]
-
-    k /= k.sum()
-
-    return k
 
 class ConvLayer(nn.Sequential):
     def __init__(
@@ -249,23 +104,6 @@ class ConvLayer(nn.Sequential):
         super().__init__(*layers)
 
 
-class Blur_swap(nn.Module):
-    def __init__(self, kernel, pad, upsample_factor=1):
-        super().__init__()
-
-        kernel = make_kernel_swap(kernel)
-
-        if upsample_factor > 1:
-            kernel = kernel * (upsample_factor ** 2)
-
-        self.register_buffer("kernel", kernel)
-
-        self.pad = pad
-
-    def forward(self, input):
-        out = upfirdn2d(input, self.kernel, pad=self.pad)
-
-        return out
 
 
 def weights_init(init_type='gaussian'):
@@ -322,12 +160,6 @@ def define_G(input_nc, output_nc, ngf, n_downsample_global=2,
 
     return netG
 
-def define_cooccur_D(channel,gpu_ids=[]):
-    net_occur_d = CooccurDiscriminator(channel)
-    if len(gpu_ids) > 0:
-        assert(torch.cuda.is_available())
-        net_occur_d.cuda(gpu_ids[0])
-    return net_occur_d
 
 def define_distan_G(input_nc, output_nc, ngf, n_downsample_global=2,
              id_enc_norm='pixel', gpu_ids=[], padding_type='reflect',
@@ -552,6 +384,26 @@ class ModulatedConv2d(nn.Module):
             out = self.blur(out)
 
         return out
+
+class Modulated_1D(nn.Module):
+    def __init__(self, in_channel, latent_dim, normalize_mlp=False):
+        super().__init__()
+
+        if normalize_mlp:
+            self.mlp_class_std = nn.Sequential(EqualLinear(latent_dim, in_channel), PixelNorm())
+        else:
+            self.mlp_class_std = EqualLinear(latent_dim, in_channel)
+
+    def forward(self, x, latent):
+
+        #import ipdb; ipdb.set_trace()
+
+        s = 1 + self.mlp_class_std(latent)
+        x = x * s
+        d = torch.rsqrt((x ** 2).sum(1)+1e-5).view(-1,1)#.detach()
+        x = x * d
+        return x
+        
 
 class EqualConv2d_swap(nn.Module):
     def __init__(
@@ -910,7 +762,7 @@ class Distan_Encoder(nn.Module):
         id_feat = self.id_layer(feat)
         structure = self.structure_layer(feat)
         texture = self.text_layer(feat)
-        return id_feat, structure, texture 
+        return id_feat, structure, texture
 
 class Distan_Encoder_1(nn.Module):
     def __init__(self, input_nc, ngf=64, n_downsampling=3, n_blocks=7,
@@ -984,7 +836,7 @@ class Distan_Encoder_1(nn.Module):
         id_feat = self.id_layer(feat2)
         #structure = self.structure_layer(feat2)
         texture = self.text_layer(feat2)
-        return id_feat, structure, texture
+        return id_feat, structure, texture 
 
 class AgeEncoder(nn.Module):
     def __init__(self, input_nc, ngf=64, n_downsampling=4, style_dim=50, padding_type='reflect',
@@ -1160,9 +1012,13 @@ class Distan_StyledDecoder(nn.Module):
         self.conv_img = nn.Sequential(EqualConv2d(last_upconv_out_layers, output_nc, 1), nn.Tanh())
         self.mlp = MLP(style_dim, latent_dim, 256, 8, weight_norm=True, activation=actvn, normalize_mlp=normalize_mlp)
         #self.t_denorm = nn.Sequential(nn.Linear(256*2,256*4),nn.LeakyReLU(0.2, True), nn.Linear(256*4,256))
-        self.s_denorm = nn.Linear(256,2*256)
+
+        self.s_transform = ModulatedConv2d(256, 256, kernel_size=3, padding_type=padding_type, upsample=False,
+                                           latent_dim=256, normalize_mlp=normalize_mlp)
+
+        self.t_transform = Modulated_1D(256,256,normalize_mlp=normalize_mlp)
+        #self.s_denorm = nn.Linear(256,2*256)
         self.t_denorm = nn.Linear(256,2)
-        #self.
 
     def forward(self, struct_feat, text_feat, target_age=None, traverse=False, deploy=False, swap=False, interp_step=0.5):
 
@@ -1196,26 +1052,26 @@ class Distan_StyledDecoder(nn.Module):
 
 
                 #B, C, W, H = struct_feat.size()
-                mean_struct = struct_feat.reshape(B,C,H*W).mean(dim=2).reshape(B,C,1,1).detach()
-                std_struct = (struct_feat.reshape(B,C,H*W).var(dim=2)+1e-5).sqrt().reshape(B,C,1,1).detach()
-                norm_struct = (struct_feat-mean_struct)/std_struct
-                sb_struct = self.s_denorm(latent)
-                s_struct, b_struct = sb_struct[:,:256].contiguous().reshape(B,C,1,1), sb_struct[:,256:].contiguous().reshape(B,C,1,1)
-                new_struct = s_struct * norm_struct + b_struct
+                #mean_struct = struct_feat.reshape(B,C,H*W).mean(dim=2).reshape(B,C,1,1).detach()
+                #std_struct = (struct_feat.reshape(B,C,H*W).var(dim=2)+1e-5).sqrt().reshape(B,C,1,1).detach()
+                #norm_struct = (struct_feat-mean_struct)/std_struct
+                #sb_struct = self.s_denorm(latent)
+                #s_struct, b_struct = sb_struct[:,:256].contiguous().reshape(B,C,1,1), sb_struct[:,256:].contiguous().reshape(B,C,1,1)
+                #new_struct = s_struct * norm_struct + b_struct
+                new_struct = self.s_transform(struct_feat,latent)
             else:
                 new_struct = struct_feat
         ###normalizing texture
             text_feat = text_feat.contiguous().reshape(B,C)
-            text_mean = text_feat.mean(dim=1).reshape(B,1).detach()
-            text_std = (text_feat.var(dim=1)+1e-5).sqrt().reshape(B,1).detach()
-            norm_text = (text_feat - text_mean)/text_std
+            #text_mean = text_feat.mean(dim=1).reshape(B,1).detach()
+            #text_std = (text_feat.var(dim=1)+1e-5).sqrt().reshape(B,1).detach()
+            #norm_text = (text_feat - text_mean)/text_std
         ###
             
         
-            #new_text = self.t_denorm(torch.cat([latent,text_feat],dim=-1))
-            sb_text = self.t_denorm(latent)
-            s_text, b_text = sb_text[:,0].view(B,1), sb_text[:,1].view(B,1)
-            new_text = s_text * norm_text + b_text
+            #sb_text = self.t_denorm(latent)
+            #s_text, b_text = sb_text[:,0].view(B,1), sb_text[:,1].view(B,1)
+            new_text = self.t_transform(text_feat,latent)
         else:
             B, C, W, H = struct_feat.size()
             new_struct = struct_feat
@@ -1333,17 +1189,17 @@ class Distan_Generator(nn.Module):
             return None
 
     #parallel forward
-    def forward(self, input, target_age_code, cyc_age_code, source_age_code, distan_age_code, disc_pass=False):
+    def forward(self, input, target_age_code, cyc_age_code, source_age_code, disc_pass=False):
         #import ipdb; ipdb.set_trace()
         orig_id_features, orig_structure_feat, orig_texture_feat = self.id_encoder(input)
         #swap_id_features, swap_structure_feat, swap_texture_feat = self.id_encoder(input_swap)
         orig_age_features = self.age_encoder(input)
         if disc_pass:
             rec_out = None
-            distan_out = None
+            #distan_out = None
         else:
             rec_out = self.decode(orig_structure_feat, orig_texture_feat, target_age_features = source_age_code)
-            distan_out = self.decode(orig_structure_feat, orig_texture_feat, target_age_features = distan_age_code)
+            #distan_out = self.decode(orig_structure_feat, orig_texture_feat, target_age_features = distan_age_code)
 
         gen_out = self.decode(orig_structure_feat, orig_texture_feat, target_age_features = target_age_code)
         #swap_out = self.decode(orig_structure_feat, swap_texture_feat, target_age_features = target_age_code, swap = False)
@@ -1353,28 +1209,25 @@ class Distan_Generator(nn.Module):
             
             fake_age_features = None
             cyc_out = None
-            #fake_swap_structure_feat = None
+            #distan_id_features = None
+            #distan_structure_feat = None
             #fake_swap_text_feat = None
-            #fake_swap_age_features = None
-            distan_id_features = None
-            distan_age_features = None
-            distan_structure_feat = None
-            distan_texture_feat = None
+            #distan_age_features = None
         else:
             #fake_swap
             #_, fake_swap_structure_feat, fake_swap_text_feat = self.id_encoder(swap_out)
             fake_id_features, fake_structure_feat, fake_texture_feat = self.id_encoder(gen_out)
             fake_age_features = self.age_encoder(gen_out)
-            distan_id_features, distan_structure_feat, distan_texture_feat = self.id_encoder(distan_out)
-            distan_age_features = self.age_encoder(distan_out)
+            #distan_id_features, distan_structure_feat, _ = self.id_encoder(gen_out)
+            #distan_age_features = self.age_encoder(distan_out)
             #fake_swap_age_features = self.age_encoder(swap_out)
             cyc_out = self.decode(fake_structure_feat, fake_texture_feat, target_age_features = cyc_age_code)
-        return rec_out, gen_out, cyc_out, distan_out, orig_id_features, orig_structure_feat, orig_texture_feat, orig_age_features, fake_id_features, fake_structure_feat, fake_age_features, distan_id_features, distan_structure_feat, distan_texture_feat, distan_age_features
+        return rec_out, gen_out, cyc_out, orig_id_features, orig_structure_feat, orig_texture_feat, orig_age_features, fake_id_features, fake_structure_feat, fake_age_features
 
 
     def infer(self, input, target_age_features, traverse=False, deploy=False, interp_step=0.5):
-        id_features = self.id_encoder(input)
-        out = self.decode(id_features, target_age_features, traverse=traverse, deploy=deploy, interp_step=interp_step)
+        id_features, structure_feat, texture_feat = self.id_encoder(input)
+        out = self.decode(structure_feat, texture_feat, target_age_features, traverse=traverse, deploy=deploy, interp_step=interp_step)
         return out
 
 # Define a resnet block
