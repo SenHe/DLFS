@@ -18,3 +18,20 @@ testing:
 ```
 sh test_distan.sh
 ```
+
+## Reference
+
+If you find this repo helpful, please consider citing:
+
+```
+@inproceedings{he2021dlfs,
+  title={Disentangled Lifespan Face Synthesis},
+  author={He, Sen and Liao, Wentong and Yang, Michael and Song, Yi-Zhe and Rosenhahn, Bodo and Xiang, Tao},
+  booktitle={ICCV},
+  year={2021}
+}
+```
+
+## Acknowledgements
+
+This repository is based on [LFS](https://github.com/royorel/Lifespan_Age_Transformation_Synthesis).
