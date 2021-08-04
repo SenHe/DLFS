@@ -10,11 +10,11 @@
 Please follow [this github](https://github.com/royorel/Lifespan_Age_Transformation_Synthesis) to prepare the environments and dataset.
 
 ## Training and Testing
-training:
+training (please modify `--datarroot`, `--name`):
 ```
 sh train_distan.sh
 ```
-testing:
+testing (please modify `dataroot`, `--name`, `--which_epoch`, and `--checkpoing_dir`):
 ```
 sh test_distan.sh
 ```
