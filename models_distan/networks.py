@@ -1118,7 +1118,7 @@ class Distan_Generator(nn.Module):
         super(Distan_Generator, self).__init__()
         self.id_encoder = Distan_Encoder_1(input_nc, ngf, n_downsampling, n_blocks, id_enc_norm,
                                           padding_type, conv_weight_norm=conv_weight_norm,
-                                          actvn='relu') # replacing relu with leaky relu here causes nans and the entire training to collapse immediately
+                                          actvn='relu')
         self.age_encoder = AgeEncoder(input_nc, ngf=ngf, n_downsampling=4, style_dim=style_dim,
                                       padding_type=padding_type, actvn=actvn,
                                       conv_weight_norm=conv_weight_norm)
