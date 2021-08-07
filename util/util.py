@@ -14,10 +14,10 @@ from PIL import Image
 from pdb import set_trace as st
 
 
-males_model_spec = dict(file_url='https://drive.google.com/uc?id=1MsXN54hPi9PWDmn1HKdmKfv-J5hWYFVZ',
+males_model_spec = dict(file_url='https://drive.google.com/u/0/uc?id=1pB4mufFtzbJSxxv_2iFrBPD3vp_Ef-n3&export=download',
                         alt_url='https://grail.cs.washington.edu/projects/lifespan_age_transformation_synthesis/pretrained_models/males_model.zip',
                         file_path='orig_ckp/males_model.zip', file_size=213175683, file_md5='0079186147ec816176b946a073d1f396')
-females_model_spec = dict(file_url='https://drive.google.com/uc?id=1LNm0zAuiY0CIJnI0lHTq1Ttcu9_M1NAJ',
+females_model_spec = dict(file_url='https://drive.google.com/u/0/uc?id=1z0s_j3Khs7-352bMvz8RSnrR53vvdbiI&export=download',
                           alt_url='https://grail.cs.washington.edu/projects/lifespan_age_transformation_synthesis/pretrained_models/females_model.zip',
                           file_path='orig_ckp/females_model.zip', file_size=213218113, file_md5='0675f809413c026170cf1f22b27f3c5d')
 resnet_file_spec = dict(file_url='https://drive.google.com/uc?id=1oRGgrI4KNdefbWVpw0rRkEP1gbJIRokM',
