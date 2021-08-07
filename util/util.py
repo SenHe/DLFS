@@ -69,37 +69,37 @@ def mkdir(path):
         os.makedirs(path)
 
 def download_pretrained_models():
-    print('Downloading males model')
-    with requests.Session() as session:
-        try:
-            download_file(session, males_model_spec)
-        except:
-            print('Google Drive download failed.\n' \
-                  'Trying do download from alternate server')
-            download_file(session, males_model_spec, use_alt_url=True)
+    #print('Downloading males model')
+    #with requests.Session() as session:
+    #    try:
+    #        download_file(session, males_model_spec)
+    #    except:
+    #        print('Google Drive download failed.\n' \
+    #              'Trying do download from alternate server')
+    #        download_file(session, males_model_spec, use_alt_url=True)
 
-    print('Extracting males model zip file')
-    with zipfile.ZipFile('./orig_ckp/males_model.zip','r') as zip_fname:
-        zip_fname.extractall('./orig_ckp')
+    #print('Extracting males model zip file')
+    #with zipfile.ZipFile('./orig_ckp/males_model.zip','r') as zip_fname:
+    #    zip_fname.extractall('./orig_ckp')
 
-    print('Done!')
-    os.remove(males_model_spec['file_path'])
+    #print('Done!')
+    #os.remove(males_model_spec['file_path'])
 
-    print('Downloading females model')
-    with requests.Session() as session:
-        try:
-            download_file(session, females_model_spec)
-        except:
-            print('Google Drive download failed.\n' \
-                  'Trying do download from alternate server')
-            download_file(session, females_model_spec, use_alt_url=True)
+    #print('Downloading females model')
+    #with requests.Session() as session:
+    #    try:
+    #        download_file(session, females_model_spec)
+    #    except:
+    #        print('Google Drive download failed.\n' \
+    #              'Trying do download from alternate server')
+    #        download_file(session, females_model_spec, use_alt_url=True)
 
-    print('Extracting females model zip file')
-    with zipfile.ZipFile('./orig_ckp/females_model.zip','r') as zip_fname:
-        zip_fname.extractall('./orig_ckp')
+    #print('Extracting females model zip file')
+    #with zipfile.ZipFile('./orig_ckp/females_model.zip','r') as zip_fname:
+    #    zip_fname.extractall('./orig_ckp')
 
-    print('Done!')
-    os.remove(females_model_spec['file_path'])
+    #print('Done!')
+    #os.remove(females_model_spec['file_path'])
 
     print('Downloading face landmarks shape predictor')
     with requests.Session() as session:
