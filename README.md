@@ -5,6 +5,8 @@
 <img src=./fig/archi.png width="1200">
 </div>
 
+[![Explore in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1fgVAoxCSaqPkj0rUK4RmBh7GTQRqLNpE#scrollTo=-PJ9_OpUU-Fv&forceEdit=true&sandboxMode=true)<br>
+
 ## Preparation
 
 Please follow [this github](https://github.com/royorel/Lifespan_Age_Transformation_Synthesis) to prepare the environments and dataset.
