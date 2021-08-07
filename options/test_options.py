@@ -22,5 +22,5 @@ class TestOptions(BaseOptions):
         self.parser.add_argument('--deploy', action='store_true', help='when true, run forward pass on a list of images')
         self.parser.add_argument('--image_path_file', type=str, help='a file with a list of images to perform run through the network and/or latent space traversal on')
         self.parser.add_argument('--debug_mode', action='store_true', help='when true, all intermediate outputs are saved to the html file')
-        self.parser.add_argument('--encoder_type', type=str, default='original', choices=['oroginal', 'distan'])
+        self.parser.add_argument('--encoder_type', type=str, default='distan', choices=['oroginal', 'distan'])
         self.isTrain = False
