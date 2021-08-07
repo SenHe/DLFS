@@ -1001,13 +1001,16 @@ class Distan_StyledDecoder(nn.Module):
             latent = None
 
         if traverse:
-            id_features = id_features.repeat(output_classes,1,1,1)
+            #id_features = id_features.repeat(output_classes,1,1,1)
+            struct_feat = struct_feat.repeat(output_classes, 1,1,1)
+            text_feat = text_feat.repeat(output_classes, 1,1,1)
             for i in range(orig_class_num-1):
                 latent[interps*i:interps*(i+1), :] = alphas * temp_latent[i,:] + (1 - alphas) * temp_latent[i+1,:]
             latent[-1,:] = temp_latent[-1,:]
         elif deploy:
             output_classes = target_age.shape[0]
-            id_features = id_features.repeat(output_classes,1,1,1)
+            struct_feat = struct_feat.repeat(output_classes, 1,1,1)
+            text_feat = text_feat.repeat(output_classes, 1,1,1)
         ##norm and denorm if features
         ##normalizing structure
         if target_age is not None:
