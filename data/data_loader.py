@@ -14,7 +14,7 @@ class AgingDataLoader():
         self.dataloader = torch.utils.data.DataLoader(
             self.dataset,
             batch_size=opt.batchSize,
-            shuffle= True,                                  #not opt.serial_batches,
+            shuffle=not opt.serial_batches,
             drop_last=True,
             num_workers=int(opt.nThreads))
 
