@@ -56,6 +56,7 @@ class BaseModel(torch.nn.Module):
         if not save_dir:
             save_dir = self.save_dir
         save_path = os.path.join(save_dir, save_filename)
+        print(save_path)
         if not os.path.isfile(save_path):
             print('%s not exists yet!' % save_path)
             if 'G' in network_label:
