@@ -11,7 +11,7 @@
 
 Please follow [this github](https://github.com/royorel/Lifespan_Age_Transformation_Synthesis) to prepare the environments and dataset.
 
-## Training and Testing
+## Training and Testing (link to the pretrained models in the colab)
 training (please modify `--dataroot`, `--name`):
 ```
 sh train_distan.sh
