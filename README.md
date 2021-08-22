@@ -1,4 +1,4 @@
-# Disentangled Lifespan Face Synthesis
+# Disentangled Lifespan Face Synthesis (ICCV 2021)
 ### [Project Page](https://senhe.github.io/projects/iccv_2021_lifespan_face/) | [Paper](https://arxiv.org/pdf/2108.02874.pdf)
 <div align="center">
 <img src=./fig/archi.png width="1200">
